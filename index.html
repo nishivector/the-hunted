@@ -20,6 +20,11 @@
     
     #game-canvas {
       display: block;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
       touch-action: none;
     }
     
@@ -84,12 +89,12 @@
     
     #tap-start {
       font-family: 'JetBrains Mono', monospace;
-      font-size: clamp(10px, 2.5vw, 14px);
-      color: rgba(255,107,26,0.6);
+      font-size: clamp(12px, 3vw, 16px);
+      color: rgba(255,107,26,0.7);
       letter-spacing: 4px;
       margin-top: 60px;
       opacity: 0;
-      animation: fadeIn 2s ease 4s forwards;
+      animation: fadeIn 1.5s ease 2s forwards;
       pointer-events: auto;
       cursor: pointer;
     }
@@ -209,19 +214,20 @@
     }
     
     .control-btn {
-      width: 70px;
-      height: 70px;
-      border: 2px solid rgba(255,255,255,0.15);
+      width: 80px;
+      height: 80px;
+      border: 2px solid rgba(255,255,255,0.2);
       border-radius: 50%;
-      background: rgba(10,10,15,0.5);
+      background: rgba(10,10,15,0.7);
       display: flex;
       justify-content: center;
       align-items: center;
       font-family: 'JetBrains Mono', monospace;
-      font-size: 24px;
-      color: rgba(255,255,255,0.3);
+      font-size: 26px;
+      color: rgba(255,255,255,0.4);
       touch-action: none;
       transition: all 0.1s ease;
+      -webkit-tap-highlight-color: transparent;
     }
     
     .control-btn:active, .control-btn.active {
@@ -287,7 +293,7 @@
   
   <a href="https://github.com/nishivector" id="github-link" target="_blank">nishivector</a>
 
-  <script src="https://cdn.jsdelivr.net/npm/tone/build/Tone.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tone@15.1.22/dist/Tone.js"></script>
   <script type="importmap">
     {
       "imports": {
@@ -337,8 +343,9 @@
     scene.background = new THREE.Color(0x0a0a0f);
     scene.fog = new THREE.Fog(0x0d1018, 10, 80);
 
+    let cameraZ = 20; // updated by onResize
     const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 200);
-    camera.position.set(0, 5, 20);
+    camera.position.set(0, 5, cameraZ);
 
     // Post-processing
     const composer = new EffectComposer(renderer);
@@ -732,13 +739,14 @@
       });
     }
 
-    document.getElementById('tap-start').addEventListener('click', startGame);
-    document.getElementById('tap-start').addEventListener('pointerdown', startGame);
-    document.getElementById('start-screen').addEventListener('click', startGame);
+    document.getElementById('start-screen').addEventListener('pointerdown', startGame);
 
     // Retry
-    document.getElementById('retry-text').addEventListener('click', () => {
-      resetGame();
+    ['click', 'pointerdown'].forEach(evt => {
+      document.getElementById('retry-text').addEventListener(evt, (e) => {
+        e.preventDefault();
+        resetGame();
+      });
     });
 
     function resetGame() {
@@ -949,6 +957,7 @@
       // Camera follow
       camera.position.x = player.x + 5;
       camera.position.y = Math.max(5, player.y + 3);
+      camera.position.z = cameraZ;
       
       // Background parallax
       bgLayers.forEach(layer => {
@@ -993,15 +1002,25 @@
       requestAnimationFrame(update);
     }
 
-    // Handle resize
+    // Handle resize — portrait pulls camera back for better view
     function onResize() {
-      const rect = canvas.getBoundingClientRect();
-      camera.aspect = rect.width / rect.height;
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      const isPortrait = h > w;
+
+      camera.aspect = w / h;
+      if (isPortrait) {
+        camera.fov = 80;
+        cameraZ = 32;
+      } else {
+        camera.fov = 60;
+        cameraZ = 20;
+      }
       camera.updateProjectionMatrix();
-      renderer.setSize(rect.width, rect.height);
-      composer.setSize(rect.width, rect.height);
+      renderer.setSize(w, h);
+      composer.setSize(w, h);
     }
-    
+
     window.addEventListener('resize', onResize);
     onResize();
 
@@ -1009,7 +1028,6 @@
     state.lastTime = performance.now();
     update();
 
-    console.log('THE HUNTED - Loaded');
   </script>
 </body>
 </html>
