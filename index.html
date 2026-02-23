@@ -729,14 +729,12 @@
     
     setupPointerControls();
 
-    // Start game
+    // Start game — don't block on audio
     function startGame() {
       if (state.started) return;
-      
-      initAudio().then(() => {
-        state.started = true;
-        document.getElementById('start-screen').classList.add('hidden');
-      });
+      state.started = true;
+      document.getElementById('start-screen').classList.add('hidden');
+      initAudio().catch(() => {}); // audio is optional
     }
 
     document.getElementById('start-screen').addEventListener('pointerdown', startGame);
