@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>The Hunted</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=JetBrains+Mono:wght@300&display=swap');
+    
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      background: #0a0a0f;
+      overflow: hidden;
+      touch-action: none;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+    
+    #game-canvas {
+      display: block;
+      touch-action: none;
+    }
+    
+    #ui-layer {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 10;
+    }
+    
+    #distance {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 14px;
+      color: rgba(255,255,255,0.3);
+      letter-spacing: 2px;
+    }
+    
+    #start-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #0a0a0f;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+      opacity: 1;
+      transition: opacity 2s ease;
+    }
+    
+    #start-screen.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+    
+    #title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(48px, 12vw, 120px);
+      color: #fff;
+      letter-spacing: 8px;
+      opacity: 0;
+      animation: fadeIn 3s ease forwards;
+    }
+    
+    #tagline {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: clamp(12px, 3vw, 18px);
+      color: rgba(255,255,255,0.4);
+      margin-top: 20px;
+      opacity: 0;
+      animation: fadeIn 3s ease 2s forwards;
+    }
+    
+    #tap-start {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: clamp(10px, 2.5vw, 14px);
+      color: rgba(255,107,26,0.6);
+      letter-spacing: 4px;
+      margin-top: 60px;
+      opacity: 0;
+      animation: fadeIn 2s ease 4s forwards;
+      pointer-events: auto;
+      cursor: pointer;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    #death-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(10,10,15,0.95);
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+    }
+    
+    #death-screen.active {
+      display: flex;
+    }
+    
+    #death-text {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(36px, 10vw, 80px);
+      color: #ff6b1a;
+      letter-spacing: 12px;
+    }
+    
+    #death-distance {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 16px;
+      color: rgba(255,255,255,0.5);
+      margin-top: 20px;
+    }
+    
+    #furthest-distance {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: rgba(255,255,255,0.3);
+      margin-top: 10px;
+    }
+    
+    #retry-text {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: rgba(255,255,255,0.4);
+      margin-top: 50px;
+      pointer-events: auto;
+      cursor: pointer;
+    }
+    
+    #win-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #0a0a0f;
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+    }
+    
+    #win-screen.active {
+      display: flex;
+    }
+    
+    #win-text {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(48px, 15vw, 140px);
+      color: #fff;
+      letter-spacing: 16px;
+      opacity: 0;
+      animation: winFade 4s ease forwards;
+    }
+    
+    @keyframes winFade {
+      0% { opacity: 0; }
+      50% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+    
+    #credits {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: rgba(255,255,255,0.4);
+      margin-top: 40px;
+      opacity: 0;
+      animation: fadeIn 3s ease 3s forwards;
+      text-align: center;
+      line-height: 2;
+    }
+    
+    #controls {
+      position: fixed;
+      bottom: 30px;
+      left: 0;
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      padding: 0 30px;
+      z-index: 50;
+      pointer-events: auto;
+    }
+    
+    .control-group {
+      display: flex;
+      gap: 15px;
+    }
+    
+    .control-btn {
+      width: 70px;
+      height: 70px;
+      border: 2px solid rgba(255,255,255,0.15);
+      border-radius: 50%;
+      background: rgba(10,10,15,0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 24px;
+      color: rgba(255,255,255,0.3);
+      touch-action: none;
+      transition: all 0.1s ease;
+    }
+    
+    .control-btn:active, .control-btn.active {
+      background: rgba(255,107,26,0.2);
+      border-color: rgba(255,107,26,0.4);
+      color: rgba(255,107,26,0.8);
+    }
+    
+    #github-link {
+      position: fixed;
+      bottom: 10px;
+      right: 15px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: rgba(255,255,255,0.15);
+      text-decoration: none;
+      z-index: 1000;
+    }
+    
+    @media (min-width: 768px) {
+      #controls { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="game-canvas"></canvas>
+  
+  <div id="ui-layer">
+    <div id="distance">0m</div>
+  </div>
+  
+  <div id="start-screen">
+    <div id="title">THE HUNTED</div>
+    <div id="tagline">Something follows. It never stops. Run.</div>
+    <div id="tap-start">TAP TO BEGIN</div>
+  </div>
+  
+  <div id="death-screen">
+    <div id="death-text">CAUGHT</div>
+    <div id="death-distance">0m</div>
+    <div id="furthest-distance">FURTHEST: 0m</div>
+    <div id="retry-text">TAP TO RETRY</div>
+  </div>
+  
+  <div id="win-screen">
+    <div id="win-text">ESCAPED</div>
+    <div id="credits">
+      A game by Nishi Vector<br>
+      Three.js + Tone.js<br>
+      2026
+    </div>
+  </div>
+  
+  <div id="controls">
+    <div class="control-group">
+      <div class="control-btn" id="btn-left">◀</div>
+      <div class="control-btn" id="btn-right">▶</div>
+    </div>
+    <div class="control-group">
+      <div class="control-btn" id="btn-jump">▲</div>
+    </div>
+  </div>
+  
+  <a href="https://github.com/nishivector" id="github-link" target="_blank">nishivector</a>
+
+  <script src="https://cdn.jsdelivr.net/npm/tone/build/Tone.js"></script>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.183.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.183.0/examples/jsm/"
+      }
+    }
+  </script>
+  
+  <script type="module">
+    import * as THREE from 'three';
+    import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+    import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+    import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+
+    // Game State
+    const state = {
+      started: false,
+      paused: false,
+      gameOver: false,
+      won: false,
+      area: 0,
+      distance: 0,
+      furthestDistance: parseInt(localStorage.getItem('theHuntedBest') || '0'),
+      hunterDistance: 0.8, // 0-1, 1 = caught
+      hunterSpeed: 0.0001,
+      lastTime: 0,
+      isDucking: false
+    };
+
+    // Input State
+    const keys = { left: false, right: false, jump: false };
+
+    // Audio
+    let audio = { drone: null, heartbeat: null, deathNote: null };
+    let audioStarted = false;
+
+    // Three.js Setup
+    const canvas = document.getElementById('game-canvas');
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 0.8;
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0a0a0f);
+    scene.fog = new THREE.Fog(0x0d1018, 10, 80);
+
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 200);
+    camera.position.set(0, 5, 20);
+
+    // Post-processing
+    const composer = new EffectComposer(renderer);
+    composer.addPass(new RenderPass(scene, camera));
+    const bloomPass = new UnrealBloomPass(
+      new THREE.Vector2(window.innerWidth, window.innerHeight),
+      0.4, 0.4, 0.2
+    );
+    composer.addPass(bloomPass);
+
+    // Lighting
+    const ambientLight = new THREE.AmbientLight(0x1a1d25, 0.3);
+    scene.add(ambientLight);
+
+    const playerLight = new THREE.PointLight(0xff6b1a, 0.5, 15);
+    scene.add(playerLight);
+
+    // Player (human silhouette shape)
+    const playerGroup = new THREE.Group();
+    
+    // Body
+    const bodyGeo = new THREE.CapsuleGeometry(0.4, 1.2, 4, 8);
+    const bodyMat = new THREE.MeshBasicMaterial({ color: 0x0a0a0f });
+    const body = new THREE.Mesh(bodyGeo, bodyMat);
+    body.position.y = 1;
+    playerGroup.add(body);
+    
+    // Head
+    const headGeo = new THREE.SphereGeometry(0.35, 16, 16);
+    const head = new THREE.Mesh(headGeo, bodyMat);
+    head.position.y = 2.1;
+    playerGroup.add(head);
+    
+    // Rim light effect (edge glow)
+    const rimGeo = new THREE.TorusGeometry(0.8, 0.05, 8, 32);
+    const rimMat = new THREE.MeshBasicMaterial({ 
+      color: 0xffffff, 
+      transparent: true, 
+      opacity: 0.15 
+    });
+    const rim = new THREE.Mesh(rimGeo, rimMat);
+    rim.position.y = 1.5;
+    rim.rotation.x = Math.PI / 2;
+    playerGroup.add(rim);
+
+    // Player physics
+    const player = {
+      x: 0,
+      y: 2,
+      vx: 0,
+      vy: 0,
+      width: 0.8,
+      height: 2.4,
+      onGround: false,
+      running: false,
+      bobPhase: 0
+    };
+
+    scene.add(playerGroup);
+
+    // Platform management
+    const platforms = [];
+    const platformMaterial = new THREE.MeshBasicMaterial({ color: 0x2a2d35 });
+
+    function createPlatform(x, y, width, height, isWater = false) {
+      const geo = new THREE.BoxGeometry(width, height, 4);
+      const mat = isWater 
+        ? new THREE.MeshBasicMaterial({ color: 0x0d1018, transparent: true, opacity: 0.7 })
+        : platformMaterial;
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.position.set(x + width/2, y - height/2, 0);
+      scene.add(mesh);
+      platforms.push({ x, y, width, height, mesh, isWater });
+      return { x, y, width, height, isWater };
+    }
+
+    // Background layers (fog)
+    const bgLayers = [];
+    for (let i = 0; i < 3; i++) {
+      const layer = new THREE.Group();
+      const depth = 30 + i * 20;
+      
+      for (let j = 0; j < 10; j++) {
+        const w = 10 + Math.random() * 30;
+        const h = 20 + Math.random() * 40;
+        const x = j * 50 - 100 + Math.random() * 20;
+        const y = -10 + Math.random() * 5;
+        
+        const geo = new THREE.BoxGeometry(w, h, 1);
+        const shade = 0x0d1018 + (i * 0x020202);
+        const mat = new THREE.MeshBasicMaterial({ color: shade });
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.position.set(x, y, -depth);
+        layer.add(mesh);
+      }
+      layer.parallaxSpeed = 0.1 + i * 0.15;
+      bgLayers.push(layer);
+      scene.add(layer);
+    }
+
+    // Hunter (massive dark shape)
+    const hunterGroup = new THREE.Group();
+    
+    // Body - large irregular shape
+    const hunterBodyGeo = new THREE.CapsuleGeometry(8, 25, 4, 8);
+    const hunterBodyMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+    const hunterBody = new THREE.Mesh(hunterBodyGeo, hunterBodyMat);
+    hunterBody.rotation.z = Math.PI / 2;
+    hunterGroup.add(hunterBody);
+    
+    // Eyes - distant glowing points
+    const eyeGeo = new THREE.SphereGeometry(0.3, 8, 8);
+    const eyeMat = new THREE.MeshBasicMaterial({ color: 0xff2200 });
+    const leftEye = new THREE.Mesh(eyeGeo, eyeMat);
+    leftEye.position.set(-5, 3, 5);
+    hunterGroup.add(leftEye);
+    const rightEye = new THREE.Mesh(eyeGeo, eyeMat);
+    rightEye.position.set(-5, -1, 5);
+    hunterGroup.add(rightEye);
+
+    hunterGroup.position.set(-50, 5, -80);
+    scene.add(hunterGroup);
+
+    // Area lights (sparse amber)
+    const areaLights = [];
+
+    function createAreaLight(x, y) {
+      const geo = new THREE.CircleGeometry(0.5, 16);
+      const mat = new THREE.MeshBasicMaterial({ 
+        color: 0xff6b1a, 
+        transparent: true, 
+        opacity: 0.8 
+      });
+      const light = new THREE.Mesh(geo, mat);
+      light.position.set(x, y, -5);
+      scene.add(light);
+      
+      const pointLight = new THREE.PointLight(0xff6b1a, 0.3, 20);
+      pointLight.position.set(x, y, -3);
+      scene.add(pointLight);
+      
+      areaLights.push({ mesh: light, light: pointLight, x, baseY: y });
+    }
+
+    // Generate level data
+    const AREA_LENGTH = 500;
+    const areas = [
+      { name: 'The Entry', obstacles: 'basic' },
+      { name: 'The Machines', obstacles: 'conveyor' },
+      { name: 'The Flood', obstacles: 'water' },
+      { name: 'The Dark', obstacles: 'duck' },
+      { name: 'The End', obstacles: 'final' }
+    ];
+
+    function generateArea(areaIndex) {
+      // Clear existing platforms
+      platforms.forEach(p => scene.remove(p.mesh));
+      platforms.length = 0;
+      areaLights.forEach(l => {
+        scene.remove(l.mesh);
+        scene.remove(l.light);
+      });
+      areaLights.length = 0;
+      
+      const baseX = areaIndex * AREA_LENGTH;
+      const area = areas[areaIndex];
+      
+      // Ground with gaps
+      let currentX = baseX - 10;
+      const gapChance = 0.15 + areaIndex * 0.03;
+      const gapSizes = [3, 4, 5, 6];
+      
+      while (currentX < baseX + AREA_LENGTH - 20) {
+        const gapSize = Math.random() < gapChance ? gapSizes[Math.floor(Math.random() * gapSizes.length)] : 0;
+        const platWidth = 15 + Math.random() * 25;
+        const platY = area.obstacles === 'water' ? 3 : (area.obstacles === 'final' ? 1.5 : 2);
+        
+        createPlatform(currentX, platY, platWidth, 20);
+        
+        // Add area lights occasionally
+        if (Math.random() < 0.3) {
+          createAreaLight(currentX + platWidth / 2, platY + 8);
+        }
+        
+        currentX += platWidth + gapSize + 2;
+      }
+      
+      // Add duck obstacles for area 4
+      if (areaIndex === 3) {
+        for (let i = 0; i < 5; i++) {
+          const x = baseX + 50 + i * 80 + Math.random() * 30;
+          const y = 4.5;
+          createPlatform(x, y, 4, 2);
+        }
+      }
+      
+      // Area 2: conveyor-like moving platforms (visual only)
+      if (areaIndex === 1) {
+        for (let i = 0; i < 3; i++) {
+          const x = baseX + 100 + i * 120;
+          createPlatform(x, 2.5, 8, 1);
+        }
+      }
+      
+      // Area 5: final stretch with water higher
+      if (areaIndex === 4) {
+        // Exit door light at end
+        createAreaLight(baseX + AREA_LENGTH - 30, 8);
+      }
+    }
+
+    // Initialize
+    generateArea(0);
+
+    // Audio Setup
+    async function initAudio() {
+      if (audioStarted) return;
+      
+      await Tone.start();
+      
+      // Drone - low sine tone
+      audio.drone = new Tone.PolySynth(Tone.Synth, {
+        oscillator: { type: 'sine' },
+        envelope: { attack: 2, decay: 1, sustain: 0.8, release: 3 }
+      }).toDestination();
+      audio.drone.volume.value = -20;
+      
+      // Heartbeat
+      audio.heartbeat = new Tone.MembraneSynth({
+        pitchDecay: 0.05,
+        octaves: 2,
+        oscillator: { type: 'sine' },
+        envelope: { attack: 0.001, decay: 0.2, sustain: 0, release: 0.2 }
+      }).toDestination();
+      audio.heartbeat.volume.value = -10;
+      
+      // Death note
+      audio.deathNote = new Tone.Synth({
+        oscillator: { type: 'sine' },
+        envelope: { attack: 0.5, decay: 1, sustain: 0.5, release: 2 }
+      }).toDestination();
+      audio.deathNote.volume.value = -15;
+      
+      audioStarted = true;
+    }
+
+    function playDrone() {
+      if (!audio.drone) return;
+      const notes = ['C1', 'D1', 'E1', 'G1'];
+      const note = notes[Math.floor(Math.random() * notes.length)];
+      audio.drone.triggerAttackRelease(note, '4n');
+    }
+
+    function playHeartbeat() {
+      if (!audio.heartbeat) return;
+      audio.heartbeat.triggerAttackRelease('C1', '8n');
+      setTimeout(() => audio.heartbeat.triggerAttackRelease('C1', '8n'), 150);
+    }
+
+    function playDeath() {
+      if (!audio.deathNote) return;
+      audio.deathNote.triggerAttackRelease('C1', '2n');
+    }
+
+    let heartbeatInterval = null;
+    let droneTimeout = null;
+
+    function updateAudio() {
+      if (!audioStarted || state.paused) return;
+      
+      // Hunter proximity determines audio state
+      if (state.hunterDistance < 0.4) {
+        // Very close - heartbeat only
+        if (!heartbeatInterval) {
+          heartbeatInterval = setInterval(playHeartbeat, 800);
+          clearTimeout(droneTimeout);
+        }
+      } else if (state.hunterDistance < 0.6) {
+        // Getting closer - occasional heartbeat
+        if (heartbeatInterval) {
+          clearInterval(heartbeatInterval);
+          heartbeatInterval = null;
+        }
+        if (Math.random() < 0.02) {
+          playHeartbeat();
+        }
+      } else {
+        // Safe - play drone occasionally
+        if (heartbeatInterval) {
+          clearInterval(heartbeatInterval);
+          heartbeatInterval = null;
+        }
+        if (!droneTimeout && Math.random() < 0.005) {
+          playDrone();
+          droneTimeout = setTimeout(() => droneTimeout = null, 3000);
+        }
+      }
+    }
+
+    // Input Handling
+    function handleKeyDown(e) {
+      if (!state.started || state.gameOver) return;
+      switch(e.code) {
+        case 'ArrowLeft':
+        case 'KeyA':
+          keys.left = true;
+          break;
+        case 'ArrowRight':
+        case 'KeyD':
+          keys.right = true;
+          break;
+        case 'ArrowUp':
+        case 'KeyW':
+        case 'Space':
+          keys.jump = true;
+          break;
+        case 'ArrowDown':
+        case 'KeyS':
+          state.isDucking = true;
+          break;
+      }
+    }
+
+    function handleKeyUp(e) {
+      switch(e.code) {
+        case 'ArrowLeft':
+        case 'KeyA':
+          keys.left = false;
+          break;
+        case 'ArrowRight':
+        case 'KeyD':
+          keys.right = false;
+          break;
+        case 'ArrowUp':
+        case 'KeyW':
+        case 'Space':
+          keys.jump = false;
+          break;
+        case 'ArrowDown':
+        case 'KeyS':
+          state.isDucking = false;
+          break;
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+
+    // Pointer controls for mobile
+    function setupPointerControls() {
+      const btnLeft = document.getElementById('btn-left');
+      const btnRight = document.getElementById('btn-right');
+      const btnJump = document.getElementById('btn-jump');
+      
+      const handlePointer = (btn, key, isDown) => {
+        btn.addEventListener('pointerdown', (e) => {
+          e.preventDefault();
+          if (key === 'jump') keys.jump = true;
+          else keys[key] = true;
+          btn.classList.add('active');
+        });
+        
+        btn.addEventListener('pointerup', (e) => {
+          e.preventDefault();
+          if (key === 'jump') keys.jump = false;
+          else keys[key] = false;
+          btn.classList.remove('active');
+        });
+        
+        btn.addEventListener('pointercancel', (e) => {
+          if (key === 'jump') keys.jump = false;
+          else keys[key] = false;
+          btn.classList.remove('active');
+        });
+      };
+      
+      handlePointer(btnLeft, 'left');
+      handlePointer(btnRight, 'right');
+      handlePointer(btnJump, 'jump');
+    }
+    
+    setupPointerControls();
+
+    // Start game
+    function startGame() {
+      if (state.started) return;
+      
+      initAudio().then(() => {
+        state.started = true;
+        document.getElementById('start-screen').classList.add('hidden');
+      });
+    }
+
+    document.getElementById('tap-start').addEventListener('click', startGame);
+    document.getElementById('tap-start').addEventListener('pointerdown', startGame);
+    document.getElementById('start-screen').addEventListener('click', startGame);
+
+    // Retry
+    document.getElementById('retry-text').addEventListener('click', () => {
+      resetGame();
+    });
+
+    function resetGame() {
+      state.gameOver = false;
+      state.won = false;
+      state.area = 0;
+      state.distance = 0;
+      state.hunterDistance = 0.8;
+      state.hunterSpeed = 0.0001;
+      
+      player.x = 0;
+      player.y = 2;
+      player.vx = 0;
+      player.vy = 0;
+      
+      generateArea(0);
+      
+      document.getElementById('death-screen').classList.remove('active');
+      document.getElementById('ui-layer').style.display = 'block';
+    }
+
+    function triggerDeath() {
+      state.gameOver = true;
+      playDeath();
+      
+      if (state.distance > state.furthestDistance) {
+        state.furthestDistance = Math.floor(state.distance);
+        localStorage.setItem('theHuntedBest', state.furthestDistance.toString());
+      }
+      
+      document.getElementById('death-distance').textContent = `${Math.floor(state.distance)}m`;
+      document.getElementById('furthest-distance').textContent = `FURTHEST: ${state.furthestDistance}m`;
+      
+      setTimeout(() => {
+        document.getElementById('death-screen').classList.add('active');
+      }, 1500);
+    }
+
+    function triggerWin() {
+      state.won = true;
+      document.getElementById('win-screen').classList.add('active');
+    }
+
+    // Physics update
+    function updatePhysics(dt) {
+      if (!state.started || state.gameOver || state.won) return;
+      
+      const moveSpeed = 8;
+      const jumpForce = 15;
+      const gravity = -35;
+      
+      // Horizontal movement
+      if (keys.left) {
+        player.vx = -moveSpeed;
+        player.running = true;
+      } else if (keys.right) {
+        player.vx = moveSpeed;
+        player.running = true;
+      } else {
+        player.vx *= 0.85;
+        if (Math.abs(player.vx) < 0.1) {
+          player.vx = 0;
+          player.running = false;
+        }
+      }
+      
+      // Jump
+      if (keys.jump && player.onGround) {
+        player.vy = jumpForce;
+        player.onGround = false;
+      }
+      
+      // Duck
+      if (state.isDucking) {
+        playerGroup.scale.y = 0.6;
+        playerGroup.position.y = -0.5;
+      } else {
+        playerGroup.scale.y = 1;
+        playerGroup.position.y = 0;
+      }
+      
+      // Gravity
+      player.vy += gravity * dt;
+      
+      // Update position
+      player.x += player.vx * dt;
+      player.y += player.vy * dt;
+      
+      // Platform collision
+      player.onGround = false;
+      const playerBottom = player.y;
+      const playerTop = player.y + player.height;
+      
+      for (const plat of platforms) {
+        const platTop = plat.y;
+        const platBottom = plat.y - plat.height;
+        
+        // Check if player is above platform horizontally
+        if (player.x + player.width/2 > plat.x && 
+            player.x - player.width/2 < plat.x + plat.width) {
+          
+          // Landing on top
+          if (player.vy <= 0 && playerBottom <= platTop && playerBottom > platBottom + 0.5) {
+            player.y = platTop;
+            player.vy = 0;
+            player.onGround = true;
+          }
+        }
+      }
+      
+      // Water death (area 2+)
+      if (state.area >= 2 && player.y < 0.5) {
+        triggerDeath();
+        return;
+      }
+      
+      // Fall death
+      if (player.y < -10) {
+        triggerDeath();
+        return;
+      }
+      
+      // Duck obstacle collision (area 3)
+      if (state.area === 3 && state.isDucking === false) {
+        for (const plat of platforms) {
+          if (plat.height < 3 && plat.y > 3) {
+            if (Math.abs(player.x - (plat.x + plat.width/2)) < 2.5) {
+              if (player.y > plat.y - 1) {
+                triggerDeath();
+                return;
+              }
+            }
+          }
+        }
+      }
+      
+      // Update distance
+      state.distance = Math.max(state.distance, player.x);
+      
+      // Area progression
+      const newArea = Math.floor(player.x / AREA_LENGTH);
+      if (newArea > state.area && newArea < 5) {
+        state.area = newArea;
+        generateArea(state.area);
+      }
+      
+      // Win condition
+      if (player.x > (5 * AREA_LENGTH) - 50) {
+        triggerWin();
+      }
+      
+      // Hunter logic
+      const hunterApproach = state.hunterSpeed * dt * 60;
+      const playerMovement = player.running ? 1.5 : 0.5;
+      
+      if (player.vx > 0) {
+        state.hunterDistance -= hunterApproach / playerMovement;
+      } else if (player.vx < 0) {
+        state.hunterDistance += hunterApproach;
+      }
+      
+      state.hunterDistance = Math.max(0.1, Math.min(1, state.hunterDistance));
+      
+      // Increase hunter speed per area
+      state.hunterSpeed = 0.0001 + state.area * 0.00005;
+      
+      // Caught!
+      if (state.hunterDistance <= 0.15) {
+        triggerDeath();
+      }
+    }
+
+    // Render update
+    function update() {
+      const now = performance.now();
+      const dt = Math.min((now - state.lastTime) / 1000, 0.1);
+      state.lastTime = now;
+      
+      // Update physics
+      updatePhysics(dt);
+      
+      // Update audio
+      updateAudio();
+      
+      // Update player visual
+      playerGroup.position.x = player.x;
+      playerGroup.position.y = player.y;
+      
+      // Running animation (bobbing)
+      if (player.running && player.onGround) {
+        player.bobPhase += dt * 15;
+        playerGroup.position.y += Math.sin(player.bobPhase) * 0.1;
+      }
+      
+      // Squash and stretch on jump
+      if (!player.onGround) {
+        const stretch = 1 + Math.abs(player.vy) * 0.02;
+        playerGroup.scale.x = 1 / stretch;
+        playerGroup.scale.y = stretch;
+      } else {
+        playerGroup.scale.x = 1;
+        playerGroup.scale.y = 1;
+      }
+      
+      // Player light follows
+      playerLight.position.set(player.x, player.y + 2, 3);
+      
+      // Camera follow
+      camera.position.x = player.x + 5;
+      camera.position.y = Math.max(5, player.y + 3);
+      
+      // Background parallax
+      bgLayers.forEach(layer => {
+        layer.position.x = player.x * layer.parallaxSpeed;
+      });
+      
+      // Hunter position
+      const hunterX = player.x - state.hunterDistance * 80 - 30;
+      hunterGroup.position.x = hunterX;
+      hunterGroup.position.y = player.y;
+      
+      // Hunter subtle movement
+      hunterGroup.rotation.z = Math.sin(now * 0.001) * 0.05;
+      
+      // Eye visibility based on distance
+      const eyeOpacity = state.hunterDistance < 0.5 ? 1 - state.hunterDistance * 2 : 0;
+      leftEye.material.opacity = eyeOpacity;
+      rightEye.material.opacity = eyeOpacity;
+      
+      // Area 4: Dark - reduce visibility
+      if (state.area === 3) {
+        scene.fog.near = 5;
+        scene.fog.far = 30;
+        bloomPass.strength = 0.2;
+      } else {
+        scene.fog.near = 10;
+        scene.fog.far = 80;
+        bloomPass.strength = 0.4;
+      }
+      
+      // Area lights flicker
+      areaLights.forEach(l => {
+        l.mesh.material.opacity = 0.6 + Math.sin(now * 0.005 + l.x) * 0.2;
+      });
+      
+      // Update UI
+      document.getElementById('distance').textContent = `${Math.floor(state.distance)}m`;
+      
+      // Render
+      composer.render();
+      
+      requestAnimationFrame(update);
+    }
+
+    // Handle resize
+    function onResize() {
+      const rect = canvas.getBoundingClientRect();
+      camera.aspect = rect.width / rect.height;
+      camera.updateProjectionMatrix();
+      renderer.setSize(rect.width, rect.height);
+      composer.setSize(rect.width, rect.height);
+    }
+    
+    window.addEventListener('resize', onResize);
+    onResize();
+
+    // Start loop
+    state.lastTime = performance.now();
+    update();
+
+    console.log('THE HUNTED - Loaded');
+  </script>
+</body>
+</html>
